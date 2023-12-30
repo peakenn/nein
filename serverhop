@@ -1,31 +1,32 @@
-local gameId = 15502339080
+local placeId = 15502339080
 local minimumPlayers = 22
+local targetRegion = "tr"
 
-local function getLowestPingServer(servers)
-    local lowestPingServer = nil
+local function getBestRegionServer(servers)
+    local bestRegionServer = nil
     local lowestPing = math.huge
     
     for i, server in ipairs(servers) do
-        if server.ping < lowestPing and server.playing >= minimumPlayers then
-            lowestPingServer = server
+        if server.ping < lowestPing and server.playing >= minimumPlayers and server.region == targetRegion then
+            bestRegionServer = server
             lowestPing = server.ping
         end
     end
     
-    return lowestPingServer
+    return bestRegionServer
 end
 
 local function serverHop()
     repeat wait() until game:IsLoaded()
     
     local sfUrl = "https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=%s&limit=%s&excludeFullGames=true" 
-    local req = request({ Url = string.format(sfUrl, gameId, "Desc", 100) }) 
+    local req = request({ Url = string.format(sfUrl, placeId, "Desc", 100) }) 
     local body = game:GetService("HttpService"):JSONDecode(req.Body) 
     local deep = math.random(1, 3)
     
     if deep > 1 then 
         for i = 1, deep, 1 do 
-            req = request({ Url = string.format(sfUrl .. "&cursor=" .. body.nextPageCursor, gameId, "Desc", 100) }) 
+            req = request({ Url = string.format(sfUrl .. "&cursor=" .. body.nextPageCursor, placeId, "Desc", 100) }) 
             body = game:GetService("HttpService"):JSONDecode(req.Body) 
             task.wait(0.1)
         end 
@@ -40,12 +41,12 @@ local function serverHop()
         end
     end
     
-    local lowestPingServer = getLowestPingServer(servers)
+    local bestRegionServer = getBestRegionServer(servers)
     
-    if lowestPingServer then
-        game:GetService("TeleportService"):TeleportToPlaceInstance(gameId, lowestPingServer.id, game:GetService("Players").LocalPlayer) 
+    if bestRegionServer then
+        game:GetService("TeleportService"):TeleportToPlaceInstance(placeId, bestRegionServer.id, game:GetService("Players").LocalPlayer) 
     else
-        print("No suitable server found.")
+        print("No suitable server found in the target region.")
     end
 end
 
