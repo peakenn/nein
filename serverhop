@@ -1,0 +1,30 @@
+local placeId = 1550233908
+local minimumPlayers = 22
+
+local function serverHop()
+    -- Get the list of available servers
+    local servers = game:GetService("HttpService"):JSONDecode(game:GetService("HttpService"):GetAsync("https://www.roblox.com/games/getgameinstancesjson?placeId="..placeId.."&startIndex=0"))
+
+    -- Sort the servers based on ping
+    table.sort(servers, function(a, b)
+        return a.ping < b.ping
+    end)
+
+    -- Find a server with at least the minimum number of players
+    local targetServer = nil
+    for _, server in ipairs(servers) do
+        if server.playing <= server.maxPlayers and server.playing >= minimumPlayers then
+            targetServer = server
+            break
+        end
+    end
+
+    -- Join the server with the lowest ping and minimum players
+    if targetServer then
+        game:GetService("TeleportService"):TeleportToPlaceInstance(placeId, targetServer.id)
+    else
+        print("No suitable server found.")
+    end
+end
+
+serverHop()
