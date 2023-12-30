@@ -1,72 +1,41 @@
 local placeId = 15502339080
-local minimumPlayers = 22
-local targetRegions = {"tr", "eu", "ru", "me"} -- Add the regions you want to include
-local nearestRegion = nil
 
-local function getBestRegionServer(servers)
-    local bestRegionServer = nil
-    local lowestPing = math.huge
+local function getBestServer()
+    local sfUrl = "https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=%s&limit=%s&excludeFullGames=true"
+    local req = request({ Url = string.format(sfUrl, placeId, "Asc", 100) })
+    local body = game:GetService("HttpService"):JSONDecode(req.Body)
+    local deep = math.random(1, 3)
     
-    for i, server in ipairs(servers) do
-        if server.ping < lowestPing and server.playing >= minimumPlayers and (server.region == nearestRegion or server.region == "tr") then
-            bestRegionServer = server
-            lowestPing = server.ping
+    if deep > 1 then
+        for i = 1, deep, 1 do
+            req = request({ Url = string.format(sfUrl .. "&cursor=" .. body.nextPageCursor, placeId, "Asc", 100) })
+            body = game:GetService("HttpService"):JSONDecode(req.Body)
+            task.wait(0.1)
         end
     end
     
-    return bestRegionServer
-end
-
-local function serverHop()
-    repeat wait() until game:IsLoaded()
-    
-    local sfUrl = "https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=%s&limit=%s&excludeFullGames=true" 
-    local req = request({ Url = string.format(sfUrl, placeId, "Desc", 100) }) 
-    local body = game:GetService("HttpService"):JSONDecode(req.Body) 
-    local deep = math.random(1, 3)
-    
-    if deep > 1 then 
-        for i = 1, deep, 1 do 
-            req = request({ Url = string.format(sfUrl .. "&cursor=" .. body.nextPageCursor, placeId, "Desc", 100) }) 
-            body = game:GetService("HttpService"):JSONDecode(req.Body) 
-            task.wait(0.1)
-        end 
-    end
-    
-    local servers = {} 
-    if body and body.data then 
-        for i, v in next, body.data do 
+    local servers = {}
+    if body and body.data then
+        for i, v in next, body.data do
             if type(v) == "table" and tonumber(v.playing) and tonumber(v.maxPlayers) and v.playing < v.maxPlayers and v.id ~= game.JobId then
                 table.insert(servers, v)
             end
         end
     end
     
-    local bestRegionServer = getBestRegionServer(servers)
+    table.sort(servers, function(a, b)
+        return a.ping < b.ping
+    end)
     
-    if bestRegionServer then
-        game:GetService("TeleportService"):TeleportToPlaceInstance(placeId, bestRegionServer.id, game:GetService("Players").LocalPlayer) 
-    else
-        print("No suitable server found in the target regions.")
-    end
+    return servers[1]
 end
-
--- Find the nearest region to Turkey
-local function findNearestRegion()
-    local playerLocation = game:GetService("LocalizationService"):GetCountryRegionForPlayerAsync()
-    local nearestDistance = math.huge
-    
-    for i, region in ipairs(targetRegions) do
-        local distance = game:GetService("LocalizationService"):GetDistanceBetweenRegionsAsync(playerLocation, region)
-        if distance < nearestDistance then
-            nearestRegion = region
-            nearestDistance = distance
-        end
-    end
-end
-
-findNearestRegion()
 
 while wait(1) do
-    serverHop()
+    local bestServer = getBestServer()
+    
+    if bestServer then
+        game:GetService("TeleportService"):TeleportToPlaceInstance(placeId, bestServer.id, game:GetService("Players").LocalPlayer)
+    else
+        print("No suitable server found.")
+    end
 end
