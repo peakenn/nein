@@ -1,5 +1,5 @@
 local placeId = 15502339080
-local minimumPlayers = 20
+local minimumPlayers = 22
 local targetRegions = {"tr", "eu", "ru", "me"} -- Add the regions you want to include
 local nearestRegion = nil
 
