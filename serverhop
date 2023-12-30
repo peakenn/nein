@@ -1,13 +1,14 @@
 local placeId = 15502339080
-local minimumPlayers = 22
-local targetRegion = "tr"
+local minimumPlayers = 20
+local targetRegions = {"tr", "eu", "ru", "me"} -- Add the regions you want to include
+local nearestRegion = nil
 
 local function getBestRegionServer(servers)
     local bestRegionServer = nil
     local lowestPing = math.huge
     
     for i, server in ipairs(servers) do
-        if server.ping < lowestPing and server.playing >= minimumPlayers and server.region == targetRegion then
+        if server.ping < lowestPing and server.playing >= minimumPlayers and (server.region == nearestRegion or server.region == "tr") then
             bestRegionServer = server
             lowestPing = server.ping
         end
@@ -46,9 +47,25 @@ local function serverHop()
     if bestRegionServer then
         game:GetService("TeleportService"):TeleportToPlaceInstance(placeId, bestRegionServer.id, game:GetService("Players").LocalPlayer) 
     else
-        print("No suitable server found in the target region.")
+        print("No suitable server found in the target regions.")
     end
 end
+
+-- Find the nearest region to Turkey
+local function findNearestRegion()
+    local playerLocation = game:GetService("LocalizationService"):GetCountryRegionForPlayerAsync()
+    local nearestDistance = math.huge
+    
+    for i, region in ipairs(targetRegions) do
+        local distance = game:GetService("LocalizationService"):GetDistanceBetweenRegionsAsync(playerLocation, region)
+        if distance < nearestDistance then
+            nearestRegion = region
+            nearestDistance = distance
+        end
+    end
+end
+
+findNearestRegion()
 
 while wait(1) do
     serverHop()
