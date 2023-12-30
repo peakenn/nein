@@ -1,5 +1,5 @@
 local gameId = 15502339080
-local minimumPlayers = 20
+local minimumPlayers = 22
 
 local function getLowestPingServer(servers)
     local lowestPingServer = nil
