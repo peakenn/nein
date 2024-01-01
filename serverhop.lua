@@ -1,55 +1,53 @@
-repeat wait() until game:IsLoaded()
-
-local function request(url)
-    return game:HttpGet(url)
-end
-
-local function pingServer(serverId)
-    local pingUrl = "https://games.roblox.com/v1/games/%s/servers/%s"
-    local req = request(string.format(pingUrl, 15502339080, serverId))
-    local body = game:GetService("HttpService"):JSONDecode(req.Body)
-
-    if body and body.ping then
-        return body.ping
-    else
-        return math.huge -- Return a large value if ping information is not available
-    end
-end
-
-local function jumpToServer()
+local function jumpToServer() 
     local sfUrl = "https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=%s&limit=%s&excludeFullGames=true" 
     local req = request({ Url = string.format(sfUrl, 15502339080, "Desc", 100) }) 
-    local body = game:GetService("HttpService"):JSONDecode(req.Body) 
+    local body = http:JSONDecode(req.Body) 
     local deep = math.random(1, 3)
-
     if deep > 1 then 
         for i = 1, deep, 1 do 
-            req = request({ Url = string.format(sfUrl .. "&cursor=" .. body.nextPageCursor, 15502339080, "Desc", 100) }) 
-            body = game:GetService("HttpService"):JSONDecode(req.Body) 
-            task.wait(0.1)
+             req = request({ Url = string.format(sfUrl .. "&cursor=" .. body.nextPageCursor, 15502339080, "Desc", 100) }) 
+             body = http:JSONDecode(req.Body) 
+             task.wait(0.1)
         end 
     end 
-
     local servers = {} 
     if body and body.data then 
         for i, v in next, body.data do 
             if type(v) == "table" and tonumber(v.playing) and tonumber(v.maxPlayers) and v.playing < v.maxPlayers and v.id ~= game.JobId then
-                table.insert(servers, v.id)
+                table.insert(servers, { id = v.id, ping = pingServer(v.id) })
             end
         end
     end
 
+    -- Sort servers by ping in ascending order
     table.sort(servers, function(a, b)
-        return pingServer(a) < pingServer(b)
+        return a.ping < b.ping
     end)
 
-    if #servers > 0 then
-        game:GetService("TeleportService"):TeleportToPlaceInstance(15502339080, servers[1], game:GetService("Players").LocalPlayer)
-    else
-        print("No suitable servers found.")
+    local randomCount = #servers
+    if not randomCount then
+       randomCount = 2
     end
+    ts:TeleportToPlaceInstance(15502339080, servers[math.random(1, randomCount)].id, game:GetService("Players").LocalPlayer) 
 end
 
-while wait(1) do
-    jumpToServer()
+Players.PlayerRemoving:Connect(function(player)
+    PlayerInServer = #getPlayers
+    if PlayerInServer < 22 then
+        jumpToServer()
+    end
+end) 
+
+Players.PlayerAdded:Connect(function(player)
+    for i = 1,#alts do
+        if player.Name == alts[i] and alts[i] ~= Players.LocalPlayer.Name then
+            jumpToServer()
+        end
+    end
+end) 
+
+while task.wait(1) do
+    if math.floor(os.clock() - osclock) >= math.random(900, 1200) then
+        jumpToServer()
+    end
 end
