@@ -14,26 +14,20 @@ local function jumpToServer()
     if body and body.data then 
         for i, v in next, body.data do 
             if type(v) == "table" and tonumber(v.playing) and tonumber(v.maxPlayers) and v.playing < v.maxPlayers and v.id ~= game.JobId then
-                table.insert(servers, { id = v.id, ping = pingServer(v.id) })
+                table.insert(servers, v.id)
             end
         end
     end
-
-    -- Sort servers by ping in ascending order
-    table.sort(servers, function(a, b)
-        return a.ping < b.ping
-    end)
-
     local randomCount = #servers
     if not randomCount then
        randomCount = 2
     end
-    ts:TeleportToPlaceInstance(15502339080, servers[math.random(1, randomCount)].id, game:GetService("Players").LocalPlayer) 
+    ts:TeleportToPlaceInstance(15502339080, servers[math.random(1, randomCount)], game:GetService("Players").LocalPlayer) 
 end
 
 Players.PlayerRemoving:Connect(function(player)
     PlayerInServer = #getPlayers
-    if PlayerInServer < 22 then
+    if PlayerInServer < 25 then
         jumpToServer()
     end
 end) 
